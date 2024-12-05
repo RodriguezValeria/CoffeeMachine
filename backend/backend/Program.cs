@@ -2,6 +2,7 @@ using backend.API.Controllers;
 using backend.Application.Interfaces;
 using backend.Domain.Models;
 using backend.Infrastructure.Repository;
+using Microsoft.Extensions.FileProviders;
 
 var MyAllowSpecificOrigins = "_MyAllowSpecificOrigins";
 var builder = WebApplication.CreateBuilder(args);
@@ -38,6 +39,13 @@ app.UseHttpsRedirection();
 app.UseCors(MyAllowSpecificOrigins);
 
 app.UseAuthorization();
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+        Path.Combine(builder.Environment.ContentRootPath, "assets")),
+    RequestPath = "/assets"
+});
 
 app.MapControllers();
 
