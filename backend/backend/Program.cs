@@ -1,5 +1,6 @@
 using backend.API.Controllers;
 using backend.Application.Interfaces;
+using backend.Application.Managers;
 using backend.Domain.Models;
 using backend.Infrastructure.Repository;
 using Microsoft.Extensions.FileProviders;
@@ -20,6 +21,9 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddControllers();
 builder.Services.AddScoped<ICoffeeRepository, CoffeeRepository>();
+builder.Services.AddScoped<CoffeeManager>();
+builder.Services.AddScoped<ICashRepository, CashRepository>();
+builder.Services.AddScoped<CashManager>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();

@@ -1,8 +1,6 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using backend.Application.Interfaces;
-using backend.Domain.Models;
-using backend.Infrastructure.Repository;
+using backend.Application.Managers;
 
 namespace backend.API.Controllers
 {
@@ -10,17 +8,21 @@ namespace backend.API.Controllers
     [Route("api/[controller]")]
     public class CoffeeController : ControllerBase
     {
-        private readonly ICoffeeRepository _coffeeRepository;
+        private readonly CoffeeManager _coffeeManager;
 
-        public CoffeeController(ICoffeeRepository coffeeRepository)
+        public CoffeeController(CoffeeManager coffeeManager)
         {
-            _coffeeRepository = coffeeRepository;
+            _coffeeManager = coffeeManager;
         }
 
         [HttpGet]
-        public IActionResult GetAll()
+        public IActionResult GetCoffee()
         {
-            var coffees = _coffeeRepository.GetCoffees();
+            var coffees = _coffeeManager.IsCoffeeAvailable();
+            if (!coffees.Any())
+            {
+                return BadRequest("No hay más efectivo disponible");
+            }
             return Ok(coffees);
         }
     }

@@ -3,10 +3,10 @@
     <div class="main-page-header">
       <h1 class="header-title">Vale's Coffee Nest</h1>
       <div class="header-info">
-        <div class="date"> {{ new Date().toLocaleDateString() }} </div>
         <div class="total-price">
           Total: ₡{{ priceTotal }}
         </div>
+        <div class="order-header">Ver mi orden</div>
       </div>
     </div>
     <div class="coffee-main-section">
@@ -51,7 +51,7 @@
       </div>
     </template>
     <template v-slot:footer>
-      <button @click="isModalVisible = false" type="button" class="custom-button custom-font white-font">Agregar</button>
+      <button @click="addCoffee" type="button" class="custom-button custom-font white-font">Agregar</button>
       <button @click="isAddModalVisible = false" type="button" class="custom-button custom-font white-font">Cerrar</button>
     </template>
   </ModalComponent>
@@ -72,6 +72,7 @@ export default {
   data() {
     return {
       coffeeList: [],
+      selectedCoffees: [],
       isAddModalVisible: false,
       selectedCoffee: null,
       quantity: 1,
@@ -103,13 +104,44 @@ export default {
     increaseQuantity() {
       if (this.quantity < this.selectedCoffee.quantity) {
         this.quantity++;
+      } else {
+        alert('No more coffee available for this type!');
       }
     },
     decreaseQuantity() {
       if (this.quantity > 0) {
         this.quantity--;
       }
+    },
+    addCoffee() {
+    if (this.selectedCoffee.quantity >= this.quantity) {
+      // Deduct the selected quantity from the available stock
+      this.selectedCoffee.quantity -= this.quantity;
+
+      // Add or update the coffee in the selectedCoffees array
+      const existingCoffee = this.selectedCoffees.find(
+        (item) => item.coffeeType === this.selectedCoffee.coffeeType
+      );
+
+      if (existingCoffee) {
+        existingCoffee.quantity += this.quantity;
+      } else {
+        this.selectedCoffees.push({
+          coffeeType: this.selectedCoffee.coffeeType,
+          price: this.selectedCoffee.price,
+          quantity: this.quantity,
+        });
+      }
+
+      this.priceTotal += this.selectedCoffee.price * this.quantity;
+      this.isAddModalVisible = false;
+
+      alert('Coffee added to the order!');
+    } else {
+      alert('Not enough stock available!');
     }
+  },
+
   },
   mounted() {
     this.getCoffeeList();
@@ -154,20 +186,22 @@ export default {
   flex-direction: column;
 }
 
-.date {
-  color: #ffffff;
-  font-family: "Montserrat", sans-serif;
-  font-weight: 300;
-  font-size: 25px;
-  margin: 0;
-}
-
 .total-price {
   color: #ffffff;
   font-family: "Montserrat", sans-serif;
   font-weight: 300;
   font-size: 1.5em;
   margin-left: 20px;
+}
+
+.order-header {
+  color: #ffffff;
+  font-family: "Montserrat", sans-serif;
+  font-weight: 300;
+  font-size: 15px;
+  margin-top: 10px;
+  margin-left: 20px;
+  cursor: pointer;
 }
 
 .coffee-main-section {
@@ -252,10 +286,6 @@ input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
-}
-
-input[type="number"] {
-  -moz-appearance: textfield; /* Hide spinner for Firefox */
 }
 
 </style>
