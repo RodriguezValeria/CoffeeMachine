@@ -6,7 +6,7 @@
         <div class="total-price">
           Total: ₡{{ priceTotal }}
         </div>
-        <div @click="showOrderModal()" class="order-header">Pagar mi orden</div>
+        <button @click="showOrderModal()" class="order-header button-custom">Pagar mi orden</button>
       </div>
     </div>
     <div class="coffee-main-section">
@@ -375,6 +375,16 @@ export default {
   font-size: 15px;
   margin-top: 10px;
   margin-left: 20px;
+  cursor: pointer;
+}
+
+.button-custom {
+  background-color: #A18363;
+  color: #ffffff;
+  border: none;
+  border-radius: 5px;
+  padding: 5px;
+  font-size: 16px;
   cursor: pointer;
 }
 
