@@ -1,12 +1,12 @@
 <template>
-  <div :class="{ 'blur-background': isAddModalVisible }" class="main-page">
+  <div :class="{ 'blur-background': isAddModalVisible || isOrderModalVisible }" class="main-page">
     <div class="main-page-header">
       <h1 class="header-title">Vale's Coffee Nest</h1>
       <div class="header-info">
         <div class="total-price">
           Total: ₡{{ priceTotal }}
         </div>
-        <div class="order-header">Ver mi orden</div>
+        <div @click="showOrderModal()" class="order-header">Pagar mi orden</div>
       </div>
     </div>
     <div class="coffee-main-section">
@@ -56,6 +56,53 @@
     </template>
   </ModalComponent>
 
+  <ModalComponent
+    :isVisible="isOrderModalVisible"
+    title="Orden"
+    @close="isOrderModalVisible = false"
+  >
+    <template #body>
+      <div class="modal-content">
+        <div class="coffee-content" v-for="coffee in selectedCoffees" :key="coffee.coffeeType">
+          <div class="coffee-image-container">
+            <img :src="getImage(coffee.image)" alt="Coffee Image" class="coffee-image-modal">
+          </div>
+          <div class="coffee-details">
+            <p>{{ coffee.coffeeType }} - ₡{{ coffee.price }} x {{ coffee.quantity }}</p>
+          </div>
+        </div>
+        <p>Total: ₡{{ priceTotal }}</p>
+      </div>
+      <div class="payment-modal">
+        Sólo aceptamos efectivo (billetes de ₡1000 y monedas de ₡500, ₡100, ₡50 y ₡25).
+        <p>Voy a pagar con:</p>
+        <p>Billetes de 1000<input type="number" v-model="bills" placeholder="0" class="input-field" min="0"/></p>
+        Monedas:
+        <p>500<input type="number" v-model="coin500" placeholder="0" class="input-field" min="0"/></p>
+        <p>100<input type="number" v-model="coin100" placeholder="0" class="input-field" min="0"/></p>
+        <p>50<input type="number" v-model="coin50" placeholder="0" class="input-field" min="0"/></p>
+        <p>25<input type="number" v-model="coin25" placeholder="0" class="input-field" min="0"/></p>
+        <p>Efectivo total: ₡{{ totalCash }}</p>
+      </div>
+    </template>
+    <template v-slot:footer>
+      <button @click="checkPayment" type="button" class="custom-button custom-font white-font">Pagar</button>
+      <button @click="isOrderModalVisible = false" type="button" class="custom-button custom-font white-font">Cerrar</button>
+    </template>
+  </ModalComponent>
+
+  <ModalComponent
+    :isVisible="isMessageVisible"
+    :title="modalTitle"
+    @close="isMessageVisible = false"
+  >
+    <template #body>
+      <div class="modal-content">
+        <p>{{ modalMessage }}</p>
+      </div>
+    </template>
+  </ModalComponent>
+
 </template>
 
 <script>
@@ -71,12 +118,30 @@ export default {
   },
   data() {
     return {
+      modalTitle: '',
+      modalMessage: '',
+      isMessageVisible: false,
       coffeeList: [],
       selectedCoffees: [],
       isAddModalVisible: false,
+      isOrderModalVisible: false,
       selectedCoffee: null,
       quantity: 1,
       priceTotal: 0,
+      bills: 0,
+      coin500: 0,
+      coin100: 0,
+      coin50: 0,
+      coin25: 0,
+      cash: [],
+      cashEntered: [],
+      changeMessage: '',
+      isServiceAvailable: true,
+    }
+  },
+  computed: {
+    totalCash() {
+      return this.bills * 1000 + this.coin500 * 500 + this.coin100 * 100 + this.coin50 * 50 + this.coin25 * 25;
     }
   },
   methods: {
@@ -85,27 +150,64 @@ export default {
         const response = await axios.get(`${BACKEND_URL}/Coffee`);
         this.coffeeList = response.data;
       } catch (error) {
-        console.error(error)
+        if (error.response) {
+          if (error.response.status === 400) {
+            this.modalTitle = 'Error';
+            this.modalMessage = error.response.data;
+            this.isMessageVisible = true;
+          } else {
+            alert("Error: An unexpected error occurred.");
+          }
+        } else if (error.request) {
+          console.error("No response received:", error.request);
+          alert("Error: Unable to connect to the server. Please try again later.");
+        } else {
+          console.error("Error in setup:", error.message);
+          alert("Error: " + error.message);
+        }
+      }
+    },
+    async getCash(){
+      try {
+        const response = await axios.get(`${BACKEND_URL}/Cash`);
+        this.cash = response.data;
+      } catch (error) {
+        if (error.response) {
+          if (error.response.status === 400) {
+            this.modalTitle = 'Error';
+            this.modalMessage = error.response.data;
+            this.isMessageVisible = true;
+          } else {
+            alert("Error: An unexpected error occurred.");
+          }
+        } else if (error.request) {
+          console.error("No response received:", error.request);
+          alert("Error: Unable to connect to the server. Please try again later.");
+        } else {
+          console.error("Error in setup:", error.message);
+          alert("Error: " + error.message);
+        }
       }
     },
     getImage(imagePath) {
       const url = `https://localhost:7263${imagePath}`;
       return url;
     },
-    showModal() {
+    showModalCoffee() {
       this.isAddModalVisible = true;
-      console.log("Modal triggered");
     },
     selectCoffee(coffee) {
       this.selectedCoffee = coffee;
       this.quantity = 1;
-      this.showModal();
+      this.showModalCoffee();
     },
     increaseQuantity() {
       if (this.quantity < this.selectedCoffee.quantity) {
         this.quantity++;
       } else {
-        alert('No more coffee available for this type!');
+        this.modalTitle = 'Error';
+        this.modalMessage = 'No hay más café disponible de este tipo.';
+        this.isMessageVisible = true;
       }
     },
     decreaseQuantity() {
@@ -114,34 +216,90 @@ export default {
       }
     },
     addCoffee() {
-    if (this.selectedCoffee.quantity >= this.quantity) {
-      // Deduct the selected quantity from the available stock
-      this.selectedCoffee.quantity -= this.quantity;
+      if (this.selectedCoffee.quantity >= this.quantity) {
+        this.selectedCoffee.quantity -= this.quantity;
 
-      // Add or update the coffee in the selectedCoffees array
-      const existingCoffee = this.selectedCoffees.find(
-        (item) => item.coffeeType === this.selectedCoffee.coffeeType
-      );
+        // Add or update the coffee in the selectedCoffees array
+        const existingCoffee = this.selectedCoffees.find(
+          (item) => item.coffeeType === this.selectedCoffee.coffeeType
+        );
 
-      if (existingCoffee) {
-        existingCoffee.quantity += this.quantity;
+        if (existingCoffee) {
+          existingCoffee.quantity += this.quantity;
+        } else {
+          this.selectedCoffees.push({
+            coffeeType: this.selectedCoffee.coffeeType,
+            price: this.selectedCoffee.price,
+            quantity: this.quantity,
+            image: this.selectedCoffee.image,
+          });
+        }
+        this.priceTotal += this.selectedCoffee.price * this.quantity;
+        this.isAddModalVisible = false;
+        this.modalTitle = 'Operación exitosa';
+        this.modalMessage = "¡Café añadido a la orden!";
+        this.isMessageVisible = true;
       } else {
-        this.selectedCoffees.push({
-          coffeeType: this.selectedCoffee.coffeeType,
-          price: this.selectedCoffee.price,
-          quantity: this.quantity,
-        });
+        this.modalTitle = 'Error';
+        this.modalMessage = "No hay suficientes existencias disponibles.";
+        this.isMessageVisible = true;
+      }
+    },
+    showOrderModal() {
+      this.isOrderModalVisible = true;
+      this.getCash();
+    },
+    async checkPayment() {
+      this.isOrderModalVisible = false;
+      if (!this.isServiceAvailable) {
+        this.modalTitle = 'Error';
+        this.modalMessage = "Servicio fuera de servicio. No hay suficientes monedas para dar vuelto.";
+        this.isMessageVisible = true;
+        return;
       }
 
-      this.priceTotal += this.selectedCoffee.price * this.quantity;
-      this.isAddModalVisible = false;
-
-      alert('Coffee added to the order!');
-    } else {
-      alert('Not enough stock available!');
-    }
-  },
-
+      let change = this.totalCash - this.priceTotal;
+      if (change < 0) {
+        this.modalTitle = 'Error';
+        this.modalMessage = "Monto insuficiente para completar la compra.";
+        this.isMessageVisible = true;
+        return;
+      }
+      const originalChange = change;
+      const breakdown = {
+        coin500: 0,
+        coin100: 0,
+        coin50: 0,
+        coin25: 0,
+      };
+      const denominations = [
+        { name: 'bills', value: 1000 },
+        { name: 'coin500', value: 500 },
+        { name: 'coin100', value: 100 },
+        { name: 'coin50', value: 50 },
+        { name: 'coin25', value: 25 },
+      ];
+      for (const { name, value } of denominations) {
+        while (change >= value && this.cash[name] > 0) {
+          change -= value;
+          this.cash[name]--;
+          breakdown[name]++;
+        }
+      }
+      if (change > 0) {
+        this.modalTitle = 'Error';
+        this.modalMessage = "Fallo al realizar la compra. No hay suficientes monedas para el vuelto.";
+        this.isMessageVisible = true;
+      } else {
+        this.modalTitle = 'Error';
+        this.modalMessage = `Su vuelto es de ${originalChange} colones.\nDesglose:\n` +
+          `${breakdown.coin500} moneda(s) de 500\n` +
+          `${breakdown.coin100} moneda(s) de 100\n` +
+          `${breakdown.coin50} moneda(s) de 50\n` +
+          `${breakdown.coin25} moneda(s) de 25`;
+        this.isMessageVisible = true;
+      }
+    },
   },
   mounted() {
     this.getCoffeeList();
@@ -286,6 +444,38 @@ input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
+}
+
+.coffee-content {
+  display: flex;
+  justify-content: space-between;
+}
+
+.coffee-image-container {
+  flex-shrink: 0;
+}
+
+.coffee-image-modal {
+  width: 80px;
+  height: 80px;
+  align-self: flex-start;
+}
+
+.coffee-details {
+  margin-left: 15px;
+  flex: 1;
+  text-align: left;
+}
+
+.input-group-modal {
+  display: flex;
+  align-items: center;
+}
+
+.input-field {
+  margin-left: 8px; 
+  margin-right: 8px;
+  flex: 1;
 }
 
 </style>

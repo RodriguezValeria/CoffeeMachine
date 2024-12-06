@@ -1,6 +1,5 @@
 ﻿using backend.Application.Interfaces;
 using backend.Domain.Models;
-using System.Security.Cryptography.X509Certificates;
 
 namespace backend.Infrastructure.Repository
 {

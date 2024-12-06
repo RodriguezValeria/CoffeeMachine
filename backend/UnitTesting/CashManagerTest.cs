@@ -2,8 +2,6 @@ using backend.Application.Interfaces;
 using backend.Application.Managers;
 using backend.Domain.Models;
 using Moq;
-using NUnit.Framework;
-using System.Collections.Generic;
 
 namespace UnitTesting
 {

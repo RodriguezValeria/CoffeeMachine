@@ -32,7 +32,7 @@ namespace UnitTesting
             var result = _coffeeManager.IsCoffeeAvailable();
 
             // Assert
-            Assert.AreEqual(coffeeList, result); // Ensure the method returns all coffee
+            Assert.AreEqual(coffeeList, result);
         }
 
         [Test]
@@ -46,7 +46,7 @@ namespace UnitTesting
             var result = _coffeeManager.IsCoffeeAvailable();
 
             // Assert
-            Assert.IsEmpty(result); // Ensure the method returns an empty collection
+            Assert.IsEmpty(result);
         }
     }
 }

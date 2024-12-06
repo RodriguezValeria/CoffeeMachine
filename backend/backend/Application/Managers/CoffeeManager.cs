@@ -1,6 +1,5 @@
 ﻿using backend.Application.Interfaces;
 using backend.Domain.Models;
-using backend.Infrastructure.Repository;
 
 namespace backend.Application.Managers
 {

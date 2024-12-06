@@ -1,7 +1,5 @@
-using backend.API.Controllers;
 using backend.Application.Interfaces;
 using backend.Application.Managers;
-using backend.Domain.Models;
 using backend.Infrastructure.Repository;
 using Microsoft.Extensions.FileProviders;
 
