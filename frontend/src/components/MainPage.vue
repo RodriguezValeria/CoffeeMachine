@@ -98,7 +98,7 @@
   >
     <template #body>
       <div class="modal-content">
-        <p>{{ modalMessage }}</p>
+        <p v-html="modalMessage"></p>
       </div>
     </template>
   </ModalComponent>
@@ -152,40 +152,41 @@ export default {
       } catch (error) {
         if (error.response) {
           if (error.response.status === 400) {
-            this.modalTitle = 'Error';
-            this.modalMessage = error.response.data;
-            this.isMessageVisible = true;
+            this.displayError(error.response.data);
           } else {
-            alert("Error: An unexpected error occurred.");
+            this.displayError("An unexpected error occurred.");
           }
         } else if (error.request) {
-          console.error("No response received:", error.request);
-          alert("Error: Unable to connect to the server. Please try again later.");
+          this.displayError("Unable to connect to the server. Please try again later.");
         } else {
-          console.error("Error in setup:", error.message);
-          alert("Error: " + error.message);
+          this.displayError(error.message);
         }
       }
+    },
+    displayError(message) {
+      this.modalTitle = 'Error';
+      this.modalMessage = message;
+      this.isMessageVisible = true;
     },
     async getCash(){
       try {
         const response = await axios.get(`${BACKEND_URL}/Cash`);
         this.cash = response.data;
+        this.cash = this.cash.reduce((acc, item) => {
+          acc[`coin${item.denomination}`] = item.quantity;
+          return acc;
+        }, {});
       } catch (error) {
         if (error.response) {
           if (error.response.status === 400) {
-            this.modalTitle = 'Error';
-            this.modalMessage = error.response.data;
-            this.isMessageVisible = true;
+            this.displayError(error.response.data);
           } else {
-            alert("Error: An unexpected error occurred.");
+            this.displayError("An unexpected error occurred.");
           }
         } else if (error.request) {
-          console.error("No response received:", error.request);
-          alert("Error: Unable to connect to the server. Please try again later.");
+          this.displayError("Unable to connect to the server. Please try again later.");
         } else {
-          console.error("Error in setup:", error.message);
-          alert("Error: " + error.message);
+          this.displayError(error.message);
         }
       }
     },
@@ -205,9 +206,7 @@ export default {
       if (this.quantity < this.selectedCoffee.quantity) {
         this.quantity++;
       } else {
-        this.modalTitle = 'Error';
-        this.modalMessage = 'No hay más café disponible de este tipo.';
-        this.isMessageVisible = true;
+        this.displayError("No hay más café disponible de este tipo.");
       }
     },
     decreaseQuantity() {
@@ -240,9 +239,7 @@ export default {
         this.modalMessage = "¡Café añadido a la orden!";
         this.isMessageVisible = true;
       } else {
-        this.modalTitle = 'Error';
-        this.modalMessage = "No hay suficientes existencias disponibles.";
-        this.isMessageVisible = true;
+        this.displayError("No hay suficientes existencias disponibles.");
       }
     },
     showOrderModal() {
@@ -252,20 +249,34 @@ export default {
     async checkPayment() {
       this.isOrderModalVisible = false;
       if (!this.isServiceAvailable) {
-        this.modalTitle = 'Error';
-        this.modalMessage = "Servicio fuera de servicio. No hay suficientes monedas para dar vuelto.";
-        this.isMessageVisible = true;
+        this.displayError("Servicio fuera de servicio. No hay suficientes monedas para dar vuelto.");
+        return;
+      }
+      const change = this.totalCash - this.priceTotal;
+      if (change < 0) {
+        this.displayError("Monto insuficiente para completar la compra.");
+        return;
+      }
+      
+      const { success, details: breakdown } = this.calculateChange(change);
+      if (!success) {
+        this.displayError("Fallo al realizar la compra. No hay suficientes monedas para el vuelto.");
         return;
       }
 
-      let change = this.totalCash - this.priceTotal;
-      if (change < 0) {
-        this.modalTitle = 'Error';
-        this.modalMessage = "Monto insuficiente para completar la compra.";
-        this.isMessageVisible = true;
-        return;
-      }
-      const originalChange = change;
+      // Inline display success logic
+      this.modalTitle = 'Operación exitosa';
+      this.modalMessage = `Su vuelto es de ${change} colones.<br>Desglose:<br>` +
+        `${breakdown.coin500} moneda(s) de 500<br>` +
+        `${breakdown.coin100} moneda(s) de 100<br>` +
+        `${breakdown.coin50} moneda(s) de 50<br>` +
+        `${breakdown.coin25} moneda(s) de 25`;
+      this.isMessageVisible = true;
+
+      this.resetOrder();
+          
+    },
+    calculateChange(change) {
       const breakdown = {
         coin500: 0,
         coin100: 0,
@@ -273,12 +284,12 @@ export default {
         coin25: 0,
       };
       const denominations = [
-        { name: 'bills', value: 1000 },
         { name: 'coin500', value: 500 },
         { name: 'coin100', value: 100 },
         { name: 'coin50', value: 50 },
         { name: 'coin25', value: 25 },
       ];
+
       for (const { name, value } of denominations) {
         while (change >= value && this.cash[name] > 0) {
           change -= value;
@@ -286,20 +297,17 @@ export default {
           breakdown[name]++;
         }
       }
-      if (change > 0) {
-        this.modalTitle = 'Error';
-        this.modalMessage = "Fallo al realizar la compra. No hay suficientes monedas para el vuelto.";
-        this.isMessageVisible = true;
-      } else {
-        this.modalTitle = 'Error';
-        this.modalMessage = `Su vuelto es de ${originalChange} colones.\nDesglose:\n` +
-          `${breakdown.coin500} moneda(s) de 500\n` +
-          `${breakdown.coin100} moneda(s) de 100\n` +
-          `${breakdown.coin50} moneda(s) de 50\n` +
-          `${breakdown.coin25} moneda(s) de 25`;
-        this.isMessageVisible = true;
-      }
-    },
+
+    return {
+      success: change === 0,
+      details: breakdown,
+    };
+  },
+
+  resetOrder() {
+    this.selectedCoffees = [];
+    this.priceTotal = 0;
+  },
   },
   mounted() {
     this.getCoffeeList();
