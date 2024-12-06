@@ -20,7 +20,7 @@ namespace backend.API.Controllers
             var coffees = _coffeeManager.IsCoffeeAvailable();
             if (!coffees.Any())
             {
-                return BadRequest("No hay más efectivo disponible");
+                return BadRequest("No hay más café disponible");
             }
             return Ok(coffees);
         }
