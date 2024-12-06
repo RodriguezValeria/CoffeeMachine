@@ -272,6 +272,7 @@ export default {
         `${breakdown.coin50} moneda(s) de 50<br>` +
         `${breakdown.coin25} moneda(s) de 25`;
       this.isMessageVisible = true;
+      this.resetCoins();
 
       this.resetOrder();
           
@@ -307,6 +308,13 @@ export default {
   resetOrder() {
     this.selectedCoffees = [];
     this.priceTotal = 0;
+  },
+  resetCoins() {
+    this.bills = 0;
+    this.coin500 = 0;
+    this.coin100 = 0;
+    this.coin50 = 0;
+    this.coin25 = 0;
   },
   },
   mounted() {
