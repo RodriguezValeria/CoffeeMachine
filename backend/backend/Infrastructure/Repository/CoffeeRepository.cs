@@ -22,10 +22,5 @@ namespace backend.Infrastructure.Repository
         {
             return _coffees;
         }
-
-        public bool UpdateQuantities(string coffeeType)
-        {
-            return true;
-        }
     }
 }
